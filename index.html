@@ -1,109 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My ICAT Project</title>
-
-    <style>
-        body { background-color: aqua; }
-        h1 { text-align: center; }
-        button {
-            background-color: rgb(57, 255, 47);
-            border-radius: 20px;
-            padding: 10px;
-            margin-left: 39%;
-            cursor: pointer;
-        }
-    </style>
-
-    <!-- ethers.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js"
-        integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passwordless Blockchain Login</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js"></script>
+<style>
+body { 
+    background-color: aqua; 
+    text-align:center; 
+    font-family: Arial, sans-serif; 
+}
+button { 
+    background-color: rgb(57, 255, 47); 
+    border-radius: 20px; 
+    padding: 10px; 
+    margin: 10px; 
+    cursor:pointer; 
+}
+#Protectedcontent { 
+    margin-top:20px; 
+    display:none; 
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 2px 2px 10px gray;
+}
+</style>
 </head>
-
 <body>
 
 <h1>Passwordless Login Using Blockchain</h1>
 
 <button id="connectBtn">Connect Wallet</button>
-<br><br>
 <button id="loginBtn" style="display:none;">Login (Sign Message)</button>
 
 <div id="Protectedcontent">
-    <h2>Protected Content</h2>
-    <p id="usermessage"></p>
-    <p>This content is only viewable if you're authenticated using your wallet.</p>
+<h2>Protected Content</h2>
+<p id="usermessage"></p>
+<p>This content is only viewable if authenticated with your wallet.</p>
 </div>
 
 <script>
-    const connectBtn = document.getElementById('connectBtn');
-    const loginBtn = document.getElementById('loginBtn');
-    const Protectedcontent = document.getElementById('Protectedcontent');
-    const usermessage = document.getElementById('usermessage');
+let provider, signer, userAddress;
 
-    Protectedcontent.style.display = 'none';
+const connectBtn = document.getElementById('connectBtn');
+const loginBtn = document.getElementById('loginBtn');
+const Protectedcontent = document.getElementById('Protectedcontent');
+const usermessage = document.getElementById('usermessage');
 
-    let provider;
-    let signer;
-    let userAddress;
+// STEP 1: CONNECT WALLET
+connectBtn.addEventListener('click', async () => {
+    if(typeof window.ethereum === 'undefined'){
+        alert("MetaMask not installed");
+        return;
+    }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+    usermessage.innerHTML = `Wallet connected: <b>${userAddress}</b>`;
+    loginBtn.style.display = 'inline-block';
+});
 
-    // STEP 1: CONNECT WALLET
-    connectBtn.addEventListener("click", async () => {
-        if (typeof window.ethereum === 'undefined') {
-            alert("MetaMask is not installed!");
-            return;
-        }
+// STEP 2: LOGIN USING CHALLENGE-RESPONSE
+loginBtn.addEventListener('click', async () => {
+    try {
+        // 1️⃣ Get challenge from local backend
+        const challengeResp = await fetch('http://127.0.0.1:5000/challenge', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({address: userAddress})
+        });
+        const challengeData = await challengeResp.json();
+        const challenge = challengeData.challenge;
 
-        provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = await provider.getSigner();
-        userAddress = await signer.getAddress();
-
-        usermessage.innerHTML = `Wallet connected: <b>${userAddress}</b>`;
-        loginBtn.style.display = "inline-block";
-    });
-
-    // STEP 2: LOGIN USING CHALLENGE–RESPONSE
-    loginBtn.addEventListener("click", async () => {
-
-        /*
-          In real project:
-          1. Backend sends challenge
-          2. User signs it
-          3. Backend verifies signature
-        */
-
-        // TEMP challenge (later this comes from Flask backend)
-        const challenge = "LOGIN_CHALLENGE_" + Math.floor(Math.random() * 1000000);
-
-        // User signs challenge with private key
+        // 2️⃣ User signs challenge with private key
         const signature = await signer.signMessage(challenge);
 
-        console.log("Challenge:", challenge);
-        console.log("Signature:", signature);
-
-        // Normally you'd send this to backend:
-        /*
-        fetch('/verify', {
+        // 3️⃣ Send signature back to backend for verification
+        const verifyResp = await fetch('http://127.0.0.1:5000/verify', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                address: userAddress,
-                challenge: challenge,
-                signature: signature
-            })
-        })
-        */
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({address: userAddress, challenge: challenge, signature: signature})
+        });
 
-        // TEMP success (frontend-only demo)
-        Protectedcontent.style.display = 'block';
-        usermessage.innerHTML = `
-            Logged in as <b>${userAddress}</b><br>
-            Authentication done via cryptographic signature (no password).
-        `;
-    });
+        const verifyData = await verifyResp.json();
+
+        if(verifyData.status === 'success'){
+            Protectedcontent.style.display = 'block';
+            usermessage.innerHTML = `Logged in as <b>${userAddress}</b><br>Authentication successful via cryptographic signature (no password).`;
+        } else {
+            alert("Authentication failed: " + verifyData.message);
+        }
+    } catch(error){
+        console.error("Error during login:", error);
+        alert("Error during login. Check backend is running.");
+    }
+});
 </script>
 
 </body>
