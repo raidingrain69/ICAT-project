@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Icat project</title>
+    <style>
+body{background-color: aqua;}
+h1{text-align: center;}
+button{background-color: rgb(57, 255, 47);
+       border-radius: 20px;  padding: 5px; margin-left: 39%; }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha512-UXYETj+vXKSURF1UlgVRLzWRS9ZiQTv3lcL4rbeLyqTXCPNZC6PTLF/Ik3uxm2Zo+E109cUpJPZfLxJsCgKSng==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+</script>
+</head>
+<body>
+    <h1>So i have no idea what im doing but yeah</h1>
+<button id="button" bgcolour="green" >
+  Tis is gonna login to MetaMask
+</button>
+
+<div id="Protectedcontent">
+<h2> tis is the honey miggha</h2>
+<p id="usermessage"></p>
+<p>This content is only viewable if youre signed in using your wallet</p>
+</div>
+
+<script>
+    const button =document.getElementById('button');
+    const Protectedcontent = document.getElementById('Protectedcontent');
+    const usermessage = document.getElementById('usermessage');
+
+Protectedcontent.style.display='none';
+button.addEventListener("click" , login);
+
+async function login() {
+    if(typeof window.ethereum !=='undefined'){
+const provider =new ethers.BrowserProvider(window.ethereum);try{ 
+await provider.send("eth_requestAccounts", []);
+Protectedcontent.style.display='block'; 
+const signer = await provider.getSigner();
+usermessage.innerHTML='You are logged in using your wallet! ${await signer.getAddress()}';
+
+
+}catch (error) {
+    console.error("There is a error: ", error);
+
+    } }else{"Metamask is not installed . Please install it to continue."}
+}
+
+</script>
+</body>
+</html>
