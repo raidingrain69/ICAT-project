@@ -18,6 +18,16 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+#bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;        /* keeps it behind everything */
+}
+
+
 button { 
     background-color: rgb(57, 255, 47); 
     border-radius: 20px; 
@@ -32,7 +42,6 @@ button:hover {
   transition: 0.3s;
 }
 
-  
 #Protectedcontent { 
     margin-top:20px; 
     display:none; 
@@ -147,6 +156,7 @@ button:hover {
 </style>
 </head>
 <body>
+    <canvas id="bg"></canvas>
 <div class="box rgb-border">
 <h1>Passwordless Login Using Blockchain</h1>
 
@@ -154,10 +164,10 @@ button:hover {
 <button id="loginBtn" style="display:none;">Login (Sign Message)</button>
 
 <div id="Protectedcontent">
-<h2>Protected Content</h2>
 <p id="usermessage"></p>
-<p>This content is only viewable if authenticated with your blockchain wallet.</p>
+<div id="secureContent">Loading secure content...</div>
 </div>
+
 </div>
 
 <br>
@@ -266,8 +276,10 @@ registerBtn.addEventListener('click', async () => {
 });
 
 // --- Login (Challenge-Response) ---
+// --- Login (Challenge-Response) ---
 loginBtn.addEventListener('click', async () => {
     try {
+        // 1️⃣ Get challenge from backend
         const challengeResp = await fetch('http://127.0.0.1:5000/challenge', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
@@ -276,8 +288,10 @@ loginBtn.addEventListener('click', async () => {
         const challengeData = await challengeResp.json();
         const challenge = challengeData.challenge;
 
+        // 2️⃣ Sign challenge
         const signature = await signer.signMessage(challenge);
 
+        // 3️⃣ Verify signature with backend
         const verifyResp = await fetch('http://127.0.0.1:5000/verify', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
@@ -286,11 +300,27 @@ loginBtn.addEventListener('click', async () => {
         const verifyData = await verifyResp.json();
 
         if (verifyData.status === 'success') {
+            // Show protected content
             Protectedcontent.style.display = 'block';
             loginBtn.style.display = 'none';
             logoutBtn.style.display = 'inline-block';
             usermessage.innerHTML = `Logged in as <b>${userAddress}</b><br>Authentication successful via signature.`;
             showToast("Login successful!");
+
+            // 🔹 Fetch secure content from backend
+            const contentResp = await fetch('http://127.0.0.1:5000/get_content', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({address: userAddress})
+            });
+            const contentData = await contentResp.json();
+
+            if(contentData.status === 'success'){
+                document.getElementById('secureContent').innerHTML = contentData.content;
+            } else {
+                alert("Could not load protected content: " + contentData.message);
+            }
+
         } else {
             alert("Authentication failed: " + verifyData.message);
         }
@@ -300,6 +330,7 @@ loginBtn.addEventListener('click', async () => {
         alert("Error during login. Check backend.");
     }
 });
+
 
 // --- Logout ---
 logoutBtn.addEventListener('click', () => {
@@ -328,12 +359,78 @@ function showToast(message) {
 // showToast("Wallet registered successfully!");
 // showToast("Login successful!");
 
+
+</script>
+<script>
+const canvas = document.getElementById("bg");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const nodes = [];
+const NODE_COUNT = 70;
+
+for (let i = 0; i < NODE_COUNT; i++) {
+  nodes.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: (Math.random() - 0.5) * 0.5
+  });
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // draw nodes
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+
+    n.x += n.vx;
+    n.y += n.vy;
+
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fill();
+  }
+
+  // draw connections
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.strokeStyle = `rgba(0, 0, 0, ${1 - dist / 120})`;
+        ctx.stroke();
+      }
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
 </script>
 
 
 <div id="toast"></div>
 
 
+
 </body>
 </html>
-
