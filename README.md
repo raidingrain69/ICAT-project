@@ -60,6 +60,8 @@ pip install flask flask-cors eth-account
 python app.py
 ```
 
+*Open the folder where app.py is , right click and chose open in terminal and write python app.py to start the server
+ 
 * The backend will run at `http://127.0.0.1:5000`
 * Leave this running while using the page
 
