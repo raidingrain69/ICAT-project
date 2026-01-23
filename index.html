@@ -91,6 +91,51 @@ button {
 
 
 
+/* Fancy Toast Animation with slide, pop, and auto-slide-out */
+#toast {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #4BB543; /* green */
+  color: white;
+  text-align: center;
+  border-radius: 12px;
+  padding: 16px;
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  top: -100px; /* start off-screen */
+  font-size: 16px;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+  opacity: 0;
+  transform: translateY(0) scale(0.9);
+  transition: opacity 0.5s ease, top 0.5s ease, transform 0.5s ease;
+}
+
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+  top: 30px; /* slide down */
+  transform: translateY(0) scale(1.05); /* subtle pop */
+}
+
+#toast.show::after {
+  content: "";
+  display: block;
+  height: 4px;
+  width: 0%;
+  background: rgba(255,255,255,0.8);
+  animation: progressBar 3s linear forwards;
+  margin-top: 8px;
+  border-radius: 2px;
+}
+
+@keyframes progressBar {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+
 </style>
 </head>
 <body>
@@ -202,7 +247,7 @@ registerBtn.addEventListener('click', async () => {
         const contractWithSigner = didContract.connect(signer);
         const tx = await contractWithSigner.register();
         await tx.wait(); // wait for transaction to confirm
-        alert("Wallet successfully registered!");
+        showToast("Wallet successfully registered!");
         registerBtn.style.display = "none";
         loginBtn.style.display = "inline-block";
         usermessage.innerHTML = `Wallet connected: <b>${userAddress}</b>`;
@@ -237,6 +282,7 @@ loginBtn.addEventListener('click', async () => {
             loginBtn.style.display = 'none';
             logoutBtn.style.display = 'inline-block';
             usermessage.innerHTML = `Logged in as <b>${userAddress}</b><br>Authentication successful via signature.`;
+            showToast("Login successful!");
         } else {
             alert("Authentication failed: " + verifyData.message);
         }
@@ -254,9 +300,30 @@ logoutBtn.addEventListener('click', () => {
     logoutBtn.style.display = 'none';
     usermessage.innerHTML = "";
 });
+
+// Function to show animated toast
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.innerText = message;
+    toast.className = 'show';
+    
+    // Slide out after 3s
+    setTimeout(() => { 
+        toast.style.top = '-100px'; // move up off-screen
+        toast.style.opacity = '0';
+        toast.style.transform = 'scale(0.9)';
+        setTimeout(() => { toast.className = ''; toast.style.top = '30px'; }, 500); // reset for next toast
+    }, 3000);
+}
+
+// Example usage:
+// showToast("Wallet registered successfully!");
+// showToast("Login successful!");
+
 </script>
 
 
+<div id="toast"></div>
 
 
 </body>
