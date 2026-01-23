@@ -17,12 +17,14 @@ This project allows users to log in **without a password** using a blockchain wa
 
 ## Setup Instructions
 
-### 1. Clone the project
+### 1️⃣ Clone the repository
+Open **Command Prompt** (Windows) or **Terminal** (Mac/Linux) and run:
 
 ```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
+git clone https://github.com/your-username/your-repo.git
+cd your-repo
 ```
+
 
 ### 2. Install Python dependencies
 
