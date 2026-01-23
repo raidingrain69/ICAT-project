@@ -12,6 +12,8 @@ This project allows users to log in **without a password** using a blockchain wa
 2. MetaMask connected to **Sepolia testnet**
 3. **Python 3.10+** installed
 4. Internet connection
+5. If cloning install git from https://git-scm.com/download/win Keep the default options (especially “Add Git to PATH” — very important).
+
 
 ---
 
