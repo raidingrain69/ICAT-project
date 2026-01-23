@@ -31,16 +31,16 @@ pip install flask flask-cors eth-account
 ```
 Right — for a normal user who just wants to run your page locally, the **dependencies are only needed for the backend (Python/Flask)**. The frontend is just HTML/JS and runs in the browser, no install needed.
 
-Here’s how a user would do it step by step:
+Here’s how to do it step by step:
 
 ---
 
-### 1️⃣ Install Python
+###  Install Python
 
 * Go to [python.org](https://www.python.org/downloads/) and download **Python 3.10+**
 * During installation, **check “Add Python to PATH”** (important!)
 
-### 2️⃣ Install backend dependencies
+### Install backend dependencies
 
 Open **Command Prompt** (Windows) or **Terminal** (Mac/Linux), then run:
 
@@ -53,30 +53,6 @@ pip install flask flask-cors eth-account
 * `eth-account` → used for verifying Ethereum signatures
 
 ---
-
-### 3️⃣ Start the backend server
-
-Navigate to the folder where `app.py` is:
-
-```bash
-cd path\to\project-folder
-python app.py
-```
-
-* The server should start and say something like:
-  `* Running on http://127.0.0.1:5000/`
-
----
-
-### 4️⃣ Open the frontend
-
-* Open `project.html` **in a browser** (Chrome/Edge/Firefox)
-* Make sure **MetaMask is installed** and connected to **Sepolia testnet**
-
-Now the user can **connect wallet, register, login, see protected content, logout**.
-
----
-
 
 ### 3. Run the backend
 
@@ -101,10 +77,4 @@ python app.py
 
 ---
 
-## Notes
-
-* The page works **locally**; no internet hosting required
-* Animations and notifications are built-in for registration/login
-
----
 
