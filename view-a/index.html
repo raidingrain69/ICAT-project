@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passwordless Blockchain Login</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js"></script>
+
+<style>
+body {
+  background: linear-gradient(-45deg, #0f0e17, #1a1a2e, #16213e, #0f1828);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #e0e0e0;
+}
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+#bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;        /* keeps it behind everything */
+}
+
+
+button { 
+    background: linear-gradient(135deg, #00d4ff, #0099ff);
+    border: none;
+    border-radius: 25px; 
+    padding: 12px 24px; 
+    margin: 10px; 
+    cursor: pointer;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+}
+
+button:hover {
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.6), 0 0 40px rgba(0, 153, 255, 0.4);
+  transform: scale(1.08);
+  background: linear-gradient(135deg, #00f0ff, #00aaff);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#Protectedcontent { 
+    margin-top: 20px; 
+    display: none; 
+    background: linear-gradient(135deg, rgba(15, 30, 50, 0.95), rgba(26, 26, 46, 0.95));
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 15px;
+    padding: 25px;
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.box {
+  width: 400px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(15, 30, 50, 0.8));
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  padding: 30px;
+  margin: 40px auto;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.box h1 {
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 20px;
+}
+
+#names {
+  text-align: left;
+  margin-top: 20px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(15, 30, 50, 0.8));
+  border: 1px solid rgba(0, 153, 255, 0.2);
+  padding: 20px;
+  width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 153, 255, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+#names p {
+  color: #00d4ff;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.rgb-border {
+  position: relative;
+  padding: 20px;
+  border-radius: 15px;
+  background: transparent;
+  z-index: 0;
+}
+
+
+
+
+.names-content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.names-content td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.names-content tr:last-child td {
+  border-bottom: none;
+}
+
+.names-content td:first-child {
+  text-align: left;
+  color: #e0e0e0;
+}
+
+.names-content td:last-child {
+  text-align: right;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+
+
+/* Fancy Toast Animation with slide, pop, and auto-slide-out */
+#toast {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  color: white;
+  text-align: center;
+  border-radius: 15px;
+  padding: 16px;
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  top: -100px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+  opacity: 0;
+  transform: translateY(0) scale(0.9);
+  transition: opacity 0.5s ease, top 0.5s ease, transform 0.5s ease;
+}
+
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+  top: 30px; /* slide down */
+  transform: translateY(0) scale(1.05); /* subtle pop */
+}
+
+#toast.show::after {
+  content: "";
+  display: block;
+  height: 4px;
+  width: 0%;
+  background: rgba(255,255,255,0.8);
+  animation: progressBar 3s linear forwards;
+  margin-top: 8px;
+  border-radius: 2px;
+}
+
+@keyframes progressBar {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top: 2px solid rgb(57, 255, 47);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.address-display {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  padding: 12px 15px;
+  border-radius: 10px;
+  margin: 10px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  word-break: break-all;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #00d4ff;
+}
+
+.copy-btn {
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 10px;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+}
+
+.copy-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.session-timer {
+  font-size: 12px;
+  color: #ff6b6b;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .box {
+    width: 90%;
+    padding: 15px;
+  }
+  
+  #names {
+    width: 90%;
+    padding: 10px;
+  }
+  
+  #Protectedcontent {
+    width: 95%;
+    padding: 15px;
+  }
+}
+
+
+</style>
+</head>
+<body>
+    <canvas id="bg"></canvas>
+<div class="box rgb-border">
+<h1>Passwordless Login Using Blockchain</h1>
+
+<button id="connectBtn">Connect Wallet</button>
+<button id="loginBtn" style="display:none;">Login</button>
+
+<div id="Protectedcontent">
+<p id="usermessage"></p>
+<div id="secureContent">Loading secure content...</div>
+</div>
+
+</div>
+
+<br>
+<br>
+<br>
+<br> 
+<br>
+
+
+<div id="names" class="rgb-border">
+<div class="names-content">
+  <p>ICAT project by:</p>
+  <table>
+    <tr><td>Muhammad Hadi Shah : </td> <td>F25609009</td></tr>
+    <tr><td>Abdullah Faheem : </td><td>F25609030</td></tr>
+    <tr><td>Ali Shahnawaz : </td><td>F25609038</td></tr>
+    <tr><td>Hamid Rauf  : </td><td>F25609044</td></tr>
+    <tr><td>Muhammad Abdullah Ali  : </td><td>F25609048</td></tr>
+  </table>
+</div>
+
+</div>
+
+
+<script>
+let provider, signer, userAddress, didContract;
+
+// HTML elements
+const connectBtn = document.getElementById('connectBtn');
+const registerBtn = document.createElement('button');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.createElement('button');
+const Protectedcontent = document.getElementById('Protectedcontent');
+const usermessage = document.getElementById('usermessage');
+
+// Setup Register and Logout buttons
+registerBtn.innerText = "Register Wallet";
+registerBtn.style.display = "none";
+registerBtn.style.margin = "10px";
+connectBtn.parentNode.insertBefore(registerBtn, loginBtn);
+
+logoutBtn.innerText = "Logout";
+logoutBtn.style.display = "none";
+logoutBtn.style.margin = "10px";
+connectBtn.parentNode.insertBefore(logoutBtn, loginBtn.nextSibling);
+
+// DID contract info
+const didContractAddress = "0xb839b888c9aE29DD1A658843BF27b3c657E27b8c";
+const didAbi = [
+    "function isRegistered(address _user) view returns (bool)",
+    "function register()"
+];
+
+// --- Connect Wallet ---
+connectBtn.addEventListener('click', async () => {
+    if (!window.ethereum) { alert("MetaMask not installed"); return; }
+
+    try {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        const network = await provider.getNetwork();
+        if (Number(network.chainId) !== 11155111) {
+            alert(`Please switch MetaMask to Sepolia. Current network: ${network.name}`);
+            return;
+        }
+
+        // Initialize contract (read-only by default)
+        didContract = new ethers.Contract(didContractAddress, didAbi, provider);
+
+        const isRegistered = await didContract.isRegistered(userAddress);
+        console.log("DID check result:", isRegistered);
+
+        if (!isRegistered) {
+            alert("Wallet not registered. Click 'Register Wallet' to register.");
+            registerBtn.style.display = "inline-block";
+            loginBtn.style.display = "none";
+        } else {
+            usermessage.innerHTML = `Wallet connected: <b>${userAddress}</b>`;
+            loginBtn.style.display = "inline-block";
+        }
+
+    } catch(err) {
+        console.error("Error connecting wallet / checking DID:", err);
+        alert("Error connecting wallet. Check console.");
+    }
+});
+
+// --- Register Wallet ---
+registerBtn.addEventListener('click', async () => {
+    try {
+        if (!didContract) return alert("Connect wallet first.");
+        const contractWithSigner = didContract.connect(signer);
+        const tx = await contractWithSigner.register();
+        await tx.wait(); // wait for transaction to confirm
+        showToast("Wallet successfully registered!");
+        registerBtn.style.display = "none";
+        loginBtn.style.display = "inline-block";
+        usermessage.innerHTML = `Wallet connected: <b>${userAddress}</b>`;
+    } catch(err) {
+        console.error("Registration error:", err);
+        alert("Failed to register wallet. Check console.");
+    }
+});
+
+// --- Login (Challenge-Response) ---
+// --- Login (Challenge-Response) ---
+loginBtn.addEventListener('click', async () => {
+    try {
+        // 1️⃣ Get challenge from backend
+        const challengeResp = await fetch('http://127.0.0.1:5000/challenge', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({address: userAddress})
+        });
+        const challengeData = await challengeResp.json();
+        const challenge = challengeData.challenge;
+
+        // 2️⃣ Sign challenge
+        const signature = await signer.signMessage(challenge);
+
+        // 3️⃣ Verify signature with backend
+        const verifyResp = await fetch('http://127.0.0.1:5000/verify', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({address: userAddress, challenge: challenge, signature: signature})
+        });
+        const verifyData = await verifyResp.json();
+
+        if (verifyData.status === 'success') {
+            // Show protected content
+            Protectedcontent.style.display = 'block';
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            usermessage.innerHTML = `Logged in as <b>${userAddress}</b><br>Authentication successful via signature.`;
+            showToast("Login successful!");
+
+            // 🔹 Fetch secure content from backend
+            const contentResp = await fetch('http://127.0.0.1:5000/get_content', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({address: userAddress})
+            });
+            const contentData = await contentResp.json();
+
+            if(contentData.status === 'success'){
+                document.getElementById('secureContent').innerHTML = contentData.content;
+            } else {
+                alert("Could not load protected content: " + contentData.message);
+            }
+
+        } else {
+            alert("Authentication failed: " + verifyData.message);
+        }
+
+    } catch(err) {
+        console.error("Login error:", err);
+        alert("Error during login. Check backend.");
+    }
+});
+
+
+// --- Logout ---
+logoutBtn.addEventListener('click', () => {
+    Protectedcontent.style.display = 'none';
+    loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+    usermessage.innerHTML = "";
+});
+
+// Function to show animated toast
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.innerText = message;
+    toast.className = 'show';
+    
+    // Slide out after 3s
+    setTimeout(() => { 
+        toast.style.top = '-100px'; // move up off-screen
+        toast.style.opacity = '0';
+        toast.style.transform = 'scale(0.9)';
+        setTimeout(() => { toast.className = ''; toast.style.top = '30px'; }, 500); // reset for next toast
+    }, 3000);
+}
+
+// Example usage:
+// showToast("Wallet registered successfully!");
+// showToast("Login successful!");
+
+
+</script>
+<script>
+const canvas = document.getElementById("bg");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const nodes = [];
+const NODE_COUNT = 70;
+
+for (let i = 0; i < NODE_COUNT; i++) {
+  nodes.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: (Math.random() - 0.5) * 0.5
+  });
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // draw nodes
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+
+    n.x += n.vx;
+    n.y += n.vy;
+
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fill();
+  }
+
+  // draw connections
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.strokeStyle = `rgba(0, 0, 0, ${1 - dist / 120})`;
+        ctx.stroke();
+      }
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+
+
+<div id="toast"></div>
+
+
+
+</body>
+</html>
