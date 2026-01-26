@@ -84,3 +84,4 @@ python app.py
 ---
 
 
+## I added a alternative view in seprate folder. To view that open the deployment and add view-a/ at the end of the url
